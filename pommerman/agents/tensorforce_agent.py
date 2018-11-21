@@ -40,5 +40,6 @@ class TensorForceAgent(BaseAgent):
                     dict(type='dense', size=64)
                 ],
                 batching_capacity=1000,
+                discount=0.99,
                 step_optimizer=dict(type='adam', learning_rate=1e-4))
         return None

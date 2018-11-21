@@ -24,6 +24,9 @@ from pommerman.agents import TensorForceAgent
 
 
 CLIENT = docker.from_env()
+wins = 0
+losses = 0
+avg_timesteps = 0.0
 
 
 def clean_up_agents(agents):
@@ -136,12 +139,42 @@ def main():
     # Create a Proximal Policy Optimization agent
     agent = training_agent.initialize(env)
 
+    if (os.path.exists('./saved/') and len(os.listdir('./saved/')) > 0):
+        agent.restore_model(directory="./saved/")
+
+    # Callback function printing episode statistics
+    def episode_finished(r):
+        print("Finished episode {ep} after {ts} timesteps (reward: {reward})".
+              format(ep=r.episode,
+                     ts=r.episode_timestep,
+                     reward=r.episode_rewards[-1]))
+        global losses, wins, avg_timesteps
+        if r.episode_rewards[-1] == -1:
+            losses += 1
+        else:
+            wins += 1
+        avg_timesteps = sum(r.episode_timesteps) / len(r.episode_timesteps)
+        return True
+
     atexit.register(functools.partial(clean_up_agents, agents))
     wrapped_env = WrappedEnv(env, visualize=args.render)
     runner = Runner(agent=agent, environment=wrapped_env)
-    runner.run(episodes=10, max_episode_timesteps=2000)
-    print("Stats: ", runner.episode_rewards, runner.episode_timesteps,
-          runner.episode_times)
+    runner.run(episodes=5000, max_episode_timesteps=2000,
+               episode_finished=episode_finished)
+    print("Losses: {}, Wins: {}, Avg timesteps: {}".format(
+        losses, wins, avg_timesteps))
+
+    agent.save_model(directory="./saved/")
+
+    # print("Stats: ", runner.episode_rewards, runner.episode_timesteps,
+    #       runner.episode_times)
+
+    agent.restore_model(directory="./saved/")
+    runner = Runner(agent=agent, environment=wrapped_env)
+    runner.run(episodes=1, max_episode_timesteps=2000, testing=True)
+
+    # print("Stats: ", runner.episode_rewards, runner.episode_timesteps,
+    #       runner.episode_times)
 
     try:
         runner.close()
