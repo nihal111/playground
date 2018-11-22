@@ -10,10 +10,11 @@ GAME_SERVERS = {id_: os.getenv("PLAYGROUND_GAME_INSTANCE_%d" % id_)
 # NOTE: This routine is meant for internal usage.
 def make_agent_from_string(agent_string, agent_id, docker_env_dict=None):
     '''Internal helper for building an agent instance'''
-    
+
     agent_type, agent_control = agent_string.split("::")
 
-    assert agent_type in ["player", "simple", "random", "docker", "http" , "test", "tensorforce"]
+    assert agent_type in ["player", "simple", "random", "docker",
+                          "http", "test", "tensorforce", "tensorforceloaded"]
 
     agent_instance = None
 
@@ -39,5 +40,7 @@ def make_agent_from_string(agent_string, agent_id, docker_env_dict=None):
         agent_instance = eval(agent_control)()
     elif agent_type == "tensorforce":
         agent_instance = agents.TensorForceAgent(algorithm=agent_control)
+    elif agent_type == "tensorforceloaded":
+        agent_instance = agents.TensorForceLoadedAgent(algorithm=agent_control)
 
     return agent_instance

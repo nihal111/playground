@@ -25,7 +25,7 @@ import numpy as np
 from pommerman import helpers
 from pommerman import make
 from pommerman import utility
-from pommerman.agents import TensorForceAgent
+from pommerman.agents import TensorForceLoadedAgent
 
 
 def run(args, num_times=1, seed=None):
@@ -45,10 +45,13 @@ def run(args, num_times=1, seed=None):
 
     env = make(config, agents, game_state_file, render_mode=render_mode)
 
-    for agent in agents:
-        if (type(agent) == TensorForceAgent):
-            agent = agent.initialize(env)
-            print (type(agent))
+    for i in range(len(agents)):
+        if (type(agents[i]) == TensorForceLoadedAgent):
+            agents[i].initialize(env, './saved/')
+            print (type(agents[i]))
+
+    print(agents)
+    env.set_agents(agents)
 
     def _run(record_pngs_dir=None, record_json_dir=None):
         '''Runs a game'''
