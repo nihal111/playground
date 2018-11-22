@@ -29,18 +29,31 @@ for line in lines:
         rew = line[i1:i2]
         rewards.append(int(rew))
 
-cum_timesteps = np.cumsum(timesteps)
-avg_cum_timesteps = [1.0 * cum_timesteps[i] /
-                     (i + 1) for i in range(len(cum_timesteps))]
 
-cum_rewards = np.cumsum(rewards)
-avg_cum_rewards = [1.0 * cum_rewards[i] /
-                   (i + 1) for i in range(len(cum_rewards))]
+def avg_from_start(x):
+    cum_x = np.cumsum(x)
+    avg_x = [1.0 * cum_x[i] /
+             (i + 1) for i in range(len(cum_x))]
+    return avg_x
 
-# plt.plot(episode_numbers, avg_cum_timesteps)
+
+def moving_avg(x, k=100):
+    if k <= 0 or not isinstance(k, int) or k > len(x):
+        return x
+    cum_x = np.cumsum(x)
+    first_k = [1.0 * cum_x[i] /
+               (i + 1) for i in range(k)]
+    latter = [(cum_x[i] - cum_x[i - k]) / k
+              for i in range(k, len(cum_x))]
+    avg_x = first_k + latter
+    assert len(avg_x) == len(x)
+    return avg_x
+
+
+# plt.plot(episode_numbers, moving_avg(timesteps))
 # plt.ylabel('Average Time Steps')
 
-plt.plot(episode_numbers, avg_cum_rewards)
+plt.plot(episode_numbers, moving_avg(rewards))
 plt.ylabel('Average Reward')
 
 plt.xlabel('Episodes')

@@ -22,9 +22,10 @@ import time
 import argparse
 import numpy as np
 
-from .. import helpers
-from .. import make
+from pommerman import helpers
+from pommerman import make
 from pommerman import utility
+from pommerman.agents import TensorForceAgent
 
 
 def run(args, num_times=1, seed=None):
@@ -43,6 +44,11 @@ def run(args, num_times=1, seed=None):
     ]
 
     env = make(config, agents, game_state_file, render_mode=render_mode)
+
+    for agent in agents:
+        if (type(agent) == TensorForceAgent):
+            agent = agent.initialize(env)
+            print (type(agent))
 
     def _run(record_pngs_dir=None, record_json_dir=None):
         '''Runs a game'''
@@ -76,7 +82,7 @@ def run(args, num_times=1, seed=None):
             if do_sleep:
                 time.sleep(5)
             env.render(close=True)
-            
+
         if args.render is False and record_json_dir:
             env.save_json(record_json_dir)
             time.sleep(1.0 / env._render_fps)
@@ -101,10 +107,10 @@ def run(args, num_times=1, seed=None):
     for i in range(num_times):
         start = time.time()
 
-        record_pngs_dir_ = record_pngs_dir + '/%d' % (i+1) \
-                           if record_pngs_dir else None
-        record_json_dir_ = record_json_dir + '/%d' % (i+1) \
-                           if record_json_dir else None
+        record_pngs_dir_ = record_pngs_dir + '/%d' % (i + 1) \
+            if record_pngs_dir else None
+        record_json_dir_ = record_json_dir + '/%d' % (i + 1) \
+            if record_json_dir else None
         infos.append(_run(record_pngs_dir_, record_json_dir_))
 
         times.append(time.time() - start)
