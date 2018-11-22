@@ -48,9 +48,7 @@ def run(args, num_times=1, seed=None):
     for i in range(len(agents)):
         if (type(agents[i]) == TensorForceLoadedAgent):
             agents[i].initialize(env, './saved/')
-            print (type(agents[i]))
 
-    print(agents)
     env.set_agents(agents)
 
     def _run(record_pngs_dir=None, record_json_dir=None):
