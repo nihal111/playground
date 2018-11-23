@@ -145,7 +145,7 @@ def main():
 
     # Callback function printing episode statistics
     def episode_finished(r):
-        if r.episode % 10 == 0:
+        if r.episode % 100 == 0:
             agent.save_model(directory=MODEL_SAVE_PATH)
         print("Finished episode {ep} after {ts} timesteps (reward: {reward})".
               format(ep=r.episode,
