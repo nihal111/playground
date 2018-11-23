@@ -11,6 +11,8 @@ from . import BaseAgent
 from .. import constants
 from .. import utility
 
+import copy
+
 
 class SimpleAgent(BaseAgent):
     """This is a baseline agent. After you can beat it, submit your agent to
@@ -62,7 +64,8 @@ class SimpleAgent(BaseAgent):
             return constants.Action.Bomb.value
 
         # Move towards an enemy if there is one in exactly three reachable spaces.
-        direction = self._near_enemy(my_position, items, dist, prev, enemies, 3)
+        direction = self._near_enemy(
+            my_position, items, dist, prev, enemies, 3)
         if direction is not None and (self._prev_direction != direction or
                                       random.random() < .5):
             self._prev_direction = direction
@@ -144,13 +147,12 @@ class SimpleAgent(BaseAgent):
                 prev[position] = None
                 item = constants.Item(board[position])
                 items[item].append(position)
-                
+
                 if position == my_position:
                     Q.put(position)
                     dist[position] = 0
                 else:
                     dist[position] = np.inf
-
 
         for bomb in bombs:
             if bomb['position'] == my_position:
@@ -173,8 +175,7 @@ class SimpleAgent(BaseAgent):
                         Q.put(new_position)
                     elif (val == dist[new_position] and random.random() < .5):
                         dist[new_position] = val
-                        prev[new_position] = position   
-
+                        prev[new_position] = position
 
         return items, dist, prev
 
@@ -200,7 +201,8 @@ class SimpleAgent(BaseAgent):
                         constants.Action.Up,
                         constants.Action.Down,
                 ]:
-                    ret[direction] = max(ret[direction], bomb['blast_strength'])
+                    ret[direction] = max(
+                        ret[direction], bomb['blast_strength'])
             elif x == position[0]:
                 if y < position[1]:
                     # Bomb is right.
@@ -257,7 +259,8 @@ class SimpleAgent(BaseAgent):
                                                         new_position, enemies):
                         continue
 
-                    dist = abs(row + position_x - next_x) + abs(col + position_y - next_y)
+                    dist = abs(row + position_x - next_x) + \
+                        abs(col + position_y - next_y)
                     Q.put((dist, new_position))
             return is_stuck
 
@@ -395,14 +398,16 @@ class SimpleAgent(BaseAgent):
             constants.Item.ExtraBomb, constants.Item.IncrRange,
             constants.Item.Kick
         ]
-        nearest_item_position = cls._nearest_position(dist, objs, items, radius)
+        nearest_item_position = cls._nearest_position(
+            dist, objs, items, radius)
         return cls._get_direction_towards_position(my_position,
                                                    nearest_item_position, prev)
 
     @classmethod
     def _near_wood(cls, my_position, items, dist, prev, radius):
         objs = [constants.Item.Wood]
-        nearest_item_position = cls._nearest_position(dist, objs, items, radius)
+        nearest_item_position = cls._nearest_position(
+            dist, objs, items, radius)
         return cls._get_direction_towards_position(my_position,
                                                    nearest_item_position, prev)
 
@@ -467,28 +472,34 @@ class SimpleAgent(BaseAgent):
                         obs_bomb_strength[i + x][j + y]
                     new_bomb_life[2 + i][2 + j] = obs_bomb_life[i + x][j + y]
 
-        passage = np.add(np.copy(new_board), 1)
-        passage[passage != 1] = 1
+        passage = np.add(copy.deepcopy(new_board), 0)
+        passage[passage == 0] = 10
+        passage[passage != 10] = 0
+        passage[passage == 10] = 1
         passage = passage.reshape(-1).astype(np.float32)
 
-        rigid_flames = np.copy(new_board)
+        rigid = copy.deepcopy(new_board)
         # Rigid walls are 1 by default
         # Make Rigid walls and flames both 1
-        rigid_flames[rigid_flames == 4] = 1
-        rigid_flames[rigid_flames != 1] = 0
-        rigid_flames = rigid_flames.reshape(-1).astype(np.float32)
+        rigid[rigid != 1] = 0
+        rigid = rigid.reshape(-1).astype(np.float32)
 
-        wooden = np.copy(new_board)
+        wooden = copy.deepcopy(new_board)
         wooden[wooden != 2] = 0
         wooden[wooden == 2] = 1
         wooden = wooden.reshape(-1).astype(np.float32)
 
-        bomb = np.copy(new_board)
+        flames = copy.deepcopy(new_board)
+        flames[flames != 4] = 0
+        flames[flames == 4] = 1
+        flames = flames.reshape(-1).astype(np.float32)
+
+        bomb = copy.deepcopy(new_board)
         bomb[bomb != 3] = 0
         bomb[bomb == 3] = 1
         bomb = bomb.reshape(-1).astype(np.float32)
 
-        powerups = np.copy(new_board)
+        powerups = copy.deepcopy(new_board)
         powerups[powerups == 6] = 100
         powerups[powerups == 7] = 100
         powerups[powerups == 8] = 100
@@ -496,7 +507,7 @@ class SimpleAgent(BaseAgent):
         powerups[powerups == 100] = 1
         powerups = powerups.reshape(-1).astype(np.float32)
 
-        enemies = np.copy(new_board)
+        enemies = copy.deepcopy(new_board)
         agent_id = new_board[2][2]
         enemies[enemies == agent_id] = 0
         enemies[np.logical_and(enemies >= 10, enemies <= 13)] = 100
@@ -509,20 +520,26 @@ class SimpleAgent(BaseAgent):
             life = new_bomb_life[tup]
             strength = int(new_bomb_strength[tup])
             x, y = tup
-            for i in range(-1 * strength, strength + 1):
-                for j in range(-1 * strength, strength + 1):
-                    if (x + i > -1 and x + i < 5 and y + j > -1 and y + j < 5):
-                        if new_bomb_life[(x + i, y + j)] == 0:
-                            new_bomb_life[(x + i, y + j)] = life
-                        elif new_bomb_life[(x + i, y + j)] > life:
-                            new_bomb_life[(x + i, y + j)] = life
+            for j in range(y - strength + 1, y + strength):
+                if (j > -1 and j < 5):
+                    if new_bomb_life[(x, j)] == 0:
+                        new_bomb_life[(x, j)] = 10 - life
+                    elif new_bomb_life[(x, j)] <= life:
+                        new_bomb_life[(x, j)] = 10 - life
+            for i in range(x - strength + 1, x + strength):
+                if (i > -1 and i < 5):
+                    if new_bomb_life[(i, y)] == 0:
+                        new_bomb_life[(i, y)] = 10 - life
+                    elif new_bomb_life[(i, y)] <= life:
+                        new_bomb_life[(i, y)] = 10 - life
 
-        bomb_life = new_bomb_life.reshape(-1).astype(np.float32)
+        bomb_life = np.add(
+            new_bomb_life.reshape(-1).astype(np.float32), 10 * flames)
 
         ammo = utility.make_np_float([obs["ammo"]])
         blast_strength = utility.make_np_float([obs["blast_strength"]])
         can_kick = utility.make_np_float([obs["can_kick"]])
 
-        return np.concatenate(
-            (passage, rigid_flames, wooden, bomb, powerups, enemies, bomb_life,
-             ammo, blast_strength, can_kick))
+        return np.concatenate((passage, rigid, wooden, flames,
+                              bomb, powerups, enemies, bomb_life,
+                              ammo, blast_strength, can_kick))

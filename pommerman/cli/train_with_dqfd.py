@@ -5,9 +5,7 @@ tensorforce agent. The script will start separate threads to operate the agents
 and then report back the result.
 
 An example with all three simple agents running ffa:
-python train_with_tensorforce.py \
- --agents=tensorforce::ppo,test::agents.SimpleAgent,test::agents.SimpleAgent,test::agents.SimpleAgent \
- --config=PommeFFACompetition-v0
+python3.6 train_with_dqfd.py --agents=tensorforce::dqfd,test::agents.SimpleAgent,test::agents.SimpleAgent,test::agents.SimpleAgent --config=PommeFFACompetition-v0
 """
 import atexit
 import functools
@@ -22,12 +20,15 @@ from tensorforce.contrib.openai_gym import OpenAIGym
 from pommerman import helpers, make
 from pommerman.agents import TensorForceAgent
 
+import time
+
 
 CLIENT = docker.from_env()
 wins = 0
 losses = 0
 avg_timesteps = 0.0
 MODEL_SAVE_PATH = "./saved-dqfd/"
+
 
 def clean_up_agents(agents):
     """Stops all agents"""
@@ -162,9 +163,11 @@ def main():
     wrapped_env = WrappedEnv(env, training_agent.agent_id,
                              visualize=args.render)
 
-    if (os.path.exists(MODEL_SAVE_PATH) and len(os.listdir(MODEL_SAVE_PATH)) > 0):
+    if (os.path.exists(MODEL_SAVE_PATH) and
+            len(os.listdir(MODEL_SAVE_PATH)) > 0):
         agent.restore_model(directory=MODEL_SAVE_PATH)
     else:
+        start_time = time.time()
         print("Loading recorded experiences")
         files = glob.glob('demonstrationsDQFD/*.pkl')
         demonstrations = list()
@@ -181,12 +184,19 @@ def main():
                         reward=x[timestep][2])
                     demonstrations.append(demonstration)
 
-            if (i > 0 and i % 10 == 0):
-                print("Starting Pre-training")
+            if (i > 0 and i % 20 == 0):
+                now = time.time()
+                elapsed = time.strftime("%H:%M:%S",
+                                        time.gmtime(now - start_time))
+                print("Starting Pre-training {} at {}".
+                      format(i, elapsed))
                 agent.import_demonstrations(demonstrations=demonstrations)
-                agent.pretrain(steps=100000)
+                agent.pretrain(steps=10000)
                 demonstrations = list()
                 print("Finished Pre-training")
+                runner = Runner(agent=agent, environment=wrapped_env)
+                runner.run(
+                    episodes=1, max_episode_timesteps=2000, testing=True)
 
     runner = Runner(agent=agent, environment=wrapped_env)
     runner.run(episodes=5000, max_episode_timesteps=2000,

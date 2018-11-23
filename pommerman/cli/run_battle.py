@@ -29,6 +29,8 @@ from pommerman import utility
 from pommerman.agents import TensorForceLoadedAgent
 from pommerman.agents import SimpleAgent
 
+import copy
+
 
 def run(args, num_times=1, seed=None):
     '''Wrapper to help start the game'''
@@ -61,7 +63,7 @@ def run(args, num_times=1, seed=None):
         if record_json_dir and not os.path.isdir(record_json_dir):
             os.makedirs(record_json_dir)
 
-        exp_ag = {0:[], 1:[], 2:[], 3:[]}
+        exp_ag = {0: [], 1: [], 2: [], 3: []}
         flag_ag = {0: False, 1: False, 2: False, 3: False}
         obs = env.reset()
         done = False
@@ -76,31 +78,30 @@ def run(args, num_times=1, seed=None):
                 env.save_json(record_json_dir)
                 time.sleep(1.0 / env._render_fps)
             actions = env.act(obs)
+            old_obs = copy.deepcopy(obs)
             obs, reward, done, info = env.step(actions)
-            
 
             for i in range(0, 4):
-                if flag_ag[i] == True:
+                if flag_ag[i] is True:
                     continue
                 agent_exp = []
-                agent_state = agents[i].featurize_special(obs[i]).tolist()
+                featurized = agents[i].featurize_special(old_obs[i])
+                agent_state = np.concatenate(featurized).tolist()
                 agent_exp.append(agent_state)
-                agent_exp.append(actions[i]); 
-                agent_exp.append(reward[i]); 
+                agent_exp.append(actions[i])
+                agent_exp.append(reward[i])
 
                 agent_terminal = False
                 if(reward[i] == 1.0 or reward[i] == -1.0):
                     agent_terminal = True
-
                 agent_exp.append(agent_terminal)
                 exp_ag[i].append(agent_exp)
 
                 if(reward[i] == 1.0 or reward[i] == -1.0):
                     flag_ag[i] = True
-                    with open('demonstrationsDQFD/exp_ag' + str(run_no) + '-' + str(i) + '.pkl','wb') as f:
+                    with open('demonstrationsDQFD/exp_ag' + str(run_no) + '-' + str(i) + '.pkl', 'wb') as f:
                         pkl.dump(exp_ag[i], f)
                         print("dumped in exp_ag" + str(i))
-                
 
         print("Final Result: ", info)
         if args.render:

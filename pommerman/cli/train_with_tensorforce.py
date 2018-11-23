@@ -139,7 +139,7 @@ def main():
         os.makedirs(args.record_json_dir)
 
     # Create a Proximal Policy Optimization agent
-    agent = training_agent.initialize(env, obs_shape=(178,))
+    agent = training_agent.initialize(env, obs_shape=(203,))
 
     if (os.path.exists('./saved/') and len(os.listdir('./saved/')) > 0):
         agent.restore_model(directory=MODEL_SAVE_PATH)
