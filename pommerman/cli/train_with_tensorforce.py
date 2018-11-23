@@ -60,7 +60,7 @@ class WrappedEnv(OpenAIGym):
 
     def reset(self):
         obs = self.gym.reset()
-        agent_obs = self.gym.featurize_special(obs[3])
+        agent_obs = self.gym.featurize_special(obs[self.agent_id])
         return agent_obs
 
 
