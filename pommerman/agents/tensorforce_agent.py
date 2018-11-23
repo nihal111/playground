@@ -16,7 +16,7 @@ class TensorForceAgent(BaseAgent):
         """This agent has its own way of inducing actions. See train_with_tensorforce."""
         return None
 
-    def initialize(self, env):
+    def initialize(self, env, obs_shape=None):
         from gym import spaces
         from tensorforce.agents import PPOAgent
 
@@ -32,8 +32,12 @@ class TensorForceAgent(BaseAgent):
             else:
                 actions = dict(type='int', num_actions=env.action_space.n)
 
+            if obs_shape:
+                shape = obs_shape
+            else:
+                shape = env.observation_space.shape
             return PPOAgent(
-                states=dict(type='float', shape=env.observation_space.shape),
+                states=dict(type='float', shape=shape),
                 actions=actions,
                 network=[
                     dict(type='dense', size=64),
