@@ -40,7 +40,7 @@ class TensorForceAgent(BaseAgent):
                 states=dict(type='float', shape=shape),
                 actions=actions,
                 network=[
-                    dict(type='dense', size=64),
+                    dict(type='dense', size=256),
                     dict(type='dense', size=128),
                     dict(type='dense', size=64)
                 ],
