@@ -17,7 +17,6 @@ import argparse
 import docker
 from tensorforce.execution import Runner
 from tensorforce.contrib.openai_gym import OpenAIGym
-import gym
 
 from pommerman import helpers, make
 from pommerman.agents import TensorForceAgent
@@ -27,7 +26,7 @@ CLIENT = docker.from_env()
 wins = 0
 losses = 0
 avg_timesteps = 0.0
-
+MODEL_SAVE_PATH = "./saved/"
 
 def clean_up_agents(agents):
     """Stops all agents"""
@@ -38,9 +37,10 @@ class WrappedEnv(OpenAIGym):
     '''An Env Wrapper used to make it easier to work
     with multiple agents'''
 
-    def __init__(self, gym, visualize=False):
+    def __init__(self, gym, agent_id, visualize=False):
         self.gym = gym
         self.visualize = visualize
+        self.agent_id = agent_id
 
     def execute(self, action):
         if self.visualize:
@@ -52,13 +52,15 @@ class WrappedEnv(OpenAIGym):
         all_actions = self.gym.act(obs)
         all_actions.insert(self.gym.training_agent, actions)
         state, reward, terminal, _ = self.gym.step(all_actions)
-        agent_state = self.gym.featurize(state[self.gym.training_agent])
+        agent_state = self.gym.featurize_special(
+            state[self.gym.training_agent])
+
         agent_reward = reward[self.gym.training_agent]
         return agent_state, terminal, agent_reward
 
     def reset(self):
         obs = self.gym.reset()
-        agent_obs = self.gym.featurize(obs[3])
+        agent_obs = self.gym.featurize_special(obs[3])
         return agent_obs
 
 
@@ -137,13 +139,15 @@ def main():
         os.makedirs(args.record_json_dir)
 
     # Create a Proximal Policy Optimization agent
-    agent = training_agent.initialize(env)
+    agent = training_agent.initialize(env, obs_shape=(178,))
 
     if (os.path.exists('./saved/') and len(os.listdir('./saved/')) > 0):
-        agent.restore_model(directory="./saved/")
+        agent.restore_model(directory=MODEL_SAVE_PATH)
 
     # Callback function printing episode statistics
     def episode_finished(r):
+        if r.episode % 100 == 0:
+            agent.save_model(directory=MODEL_SAVE_PATH)
         print("Finished episode {ep} after {ts} timesteps (reward: {reward})".
               format(ep=r.episode,
                      ts=r.episode_timestep,
@@ -157,19 +161,20 @@ def main():
         return True
 
     atexit.register(functools.partial(clean_up_agents, agents))
-    wrapped_env = WrappedEnv(env, visualize=args.render)
+    wrapped_env = WrappedEnv(env, training_agent.agent_id,
+                             visualize=args.render)
     runner = Runner(agent=agent, environment=wrapped_env)
     runner.run(episodes=5000, max_episode_timesteps=2000,
                episode_finished=episode_finished)
     print("Losses: {}, Wins: {}, Avg timesteps: {}".format(
         losses, wins, avg_timesteps))
 
-    agent.save_model(directory="./saved/")
+    agent.save_model(directory=MODEL_SAVE_PATH)
 
     # print("Stats: ", runner.episode_rewards, runner.episode_timesteps,
     #       runner.episode_times)
 
-    agent.restore_model(directory="./saved/")
+    agent.restore_model(directory=MODEL_SAVE_PATH)
     runner = Runner(agent=agent, environment=wrapped_env)
     runner.run(episodes=1, max_episode_timesteps=2000, testing=True)
 
