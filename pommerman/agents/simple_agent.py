@@ -446,3 +446,83 @@ class SimpleAgent(BaseAgent):
         if not ret:
             ret = directions
         return ret
+
+    @staticmethod
+    def featurize_special(obs):
+        obs_board = obs["board"]
+        obs_bomb_strength = obs["bomb_blast_strength"]
+        obs_bomb_life = obs["bomb_life"]
+        new_board = np.zeros(([5, 5]))
+        new_bomb_strength = np.zeros(([5, 5]))
+        new_bomb_life = np.zeros(([5, 5]))
+        x, y = obs["position"]
+
+        for i in range(-2, 3):
+            for j in range(-2, 3):
+                if (i + x < 0 or j + y < 0 or i + x > 10 or j + y > 10):
+                    new_board[2 + i][2 + j] = 1
+                else:
+                    new_board[2 + i][2 + j] = obs_board[i + x][j + y]
+                    new_bomb_strength[2 + i][2 + j] = \
+                        obs_bomb_strength[i + x][j + y]
+                    new_bomb_life[2 + i][2 + j] = obs_bomb_life[i + x][j + y]
+
+        passage = np.add(np.copy(new_board), 1)
+        passage[passage != 1] = 1
+        passage = passage.reshape(-1).astype(np.float32)
+
+        rigid_flames = np.copy(new_board)
+        # Rigid walls are 1 by default
+        # Make Rigid walls and flames both 1
+        rigid_flames[rigid_flames == 4] = 1
+        rigid_flames[rigid_flames != 1] = 0
+        rigid_flames = rigid_flames.reshape(-1).astype(np.float32)
+
+        wooden = np.copy(new_board)
+        wooden[wooden != 2] = 0
+        wooden[wooden == 2] = 1
+        wooden = wooden.reshape(-1).astype(np.float32)
+
+        bomb = np.copy(new_board)
+        bomb[bomb != 3] = 0
+        bomb[bomb == 3] = 1
+        bomb = bomb.reshape(-1).astype(np.float32)
+
+        powerups = np.copy(new_board)
+        powerups[powerups == 6] = 100
+        powerups[powerups == 7] = 100
+        powerups[powerups == 8] = 100
+        powerups[powerups != 100] = 0
+        powerups[powerups == 100] = 1
+        powerups = powerups.reshape(-1).astype(np.float32)
+
+        enemies = np.copy(new_board)
+        agent_id = new_board[2][2]
+        enemies[enemies == agent_id] = 0
+        enemies[np.logical_and(enemies >= 10, enemies <= 13)] = 100
+        enemies[enemies != 100] = 0
+        enemies[enemies == 100] = 1
+        enemies = enemies.reshape(-1).astype(np.float32)
+
+        bomb_life_tuples = zip(*np.where(new_bomb_life > 0))
+        for tup in bomb_life_tuples:
+            life = new_bomb_life[tup]
+            strength = int(new_bomb_strength[tup])
+            x, y = tup
+            for i in range(-1 * strength, strength + 1):
+                for j in range(-1 * strength, strength + 1):
+                    if (x + i > -1 and x + i < 5 and y + j > -1 and y + j < 5):
+                        if new_bomb_life[(x + i, y + j)] == 0:
+                            new_bomb_life[(x + i, y + j)] = life
+                        elif new_bomb_life[(x + i, y + j)] > life:
+                            new_bomb_life[(x + i, y + j)] = life
+
+        bomb_life = new_bomb_life.reshape(-1).astype(np.float32)
+
+        ammo = utility.make_np_float([obs["ammo"]])
+        blast_strength = utility.make_np_float([obs["blast_strength"]])
+        can_kick = utility.make_np_float([obs["can_kick"]])
+
+        return np.concatenate(
+            (passage, rigid_flames, wooden, bomb, powerups, enemies, bomb_life,
+             ammo, blast_strength, can_kick))

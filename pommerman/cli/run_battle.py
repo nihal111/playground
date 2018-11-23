@@ -21,11 +21,13 @@ import time
 
 import argparse
 import numpy as np
+import pickle as pkl
 
 from pommerman import helpers
 from pommerman import make
 from pommerman import utility
 from pommerman.agents import TensorForceLoadedAgent
+from pommerman.agents import SimpleAgent
 
 
 def run(args, num_times=1, seed=None):
@@ -48,12 +50,10 @@ def run(args, num_times=1, seed=None):
     for i in range(len(agents)):
         if (type(agents[i]) == TensorForceLoadedAgent):
             agents[i].initialize(env, './saved/')
-            print (type(agents[i]))
 
-    print(agents)
     env.set_agents(agents)
 
-    def _run(record_pngs_dir=None, record_json_dir=None):
+    def _run(record_pngs_dir=None, record_json_dir=None, run_no=0):
         '''Runs a game'''
         print("Starting the Game.")
         if record_pngs_dir and not os.path.isdir(record_pngs_dir):
@@ -61,6 +61,8 @@ def run(args, num_times=1, seed=None):
         if record_json_dir and not os.path.isdir(record_json_dir):
             os.makedirs(record_json_dir)
 
+        exp_ag = {0:[], 1:[], 2:[], 3:[]}
+        flag_ag = {0: False, 1: False, 2: False, 3: False}
         obs = env.reset()
         done = False
 
@@ -75,6 +77,30 @@ def run(args, num_times=1, seed=None):
                 time.sleep(1.0 / env._render_fps)
             actions = env.act(obs)
             obs, reward, done, info = env.step(actions)
+            
+
+            for i in range(0, 4):
+                if flag_ag[i] == True:
+                    continue
+                agent_exp = []
+                agent_state = agents[i].featurize_special(obs[i]).tolist()
+                agent_exp.append(agent_state)
+                agent_exp.append(actions[i]); 
+                agent_exp.append(reward[i]); 
+
+                agent_terminal = False
+                if(reward[i] == 1.0 or reward[i] == -1.0):
+                    agent_terminal = True
+
+                agent_exp.append(agent_terminal)
+                exp_ag[i].append(agent_exp)
+
+                if(reward[i] == 1.0 or reward[i] == -1.0):
+                    flag_ag[i] = True
+                    with open('demonstrationsDQFD/exp_ag' + str(run_no) + '-' + str(i) + '.pkl','wb') as f:
+                        pkl.dump(exp_ag[i], f)
+                        print("dumped in exp_ag" + str(i))
+                
 
         print("Final Result: ", info)
         if args.render:
@@ -114,7 +140,7 @@ def run(args, num_times=1, seed=None):
             if record_pngs_dir else None
         record_json_dir_ = record_json_dir + '/%d' % (i + 1) \
             if record_json_dir else None
-        infos.append(_run(record_pngs_dir_, record_json_dir_))
+        infos.append(_run(record_pngs_dir_, record_json_dir_, i))
 
         times.append(time.time() - start)
         print("Game Time: ", times[-1])

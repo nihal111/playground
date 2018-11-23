@@ -12,7 +12,8 @@ python train_with_tensorforce.py \
 import atexit
 import functools
 import os
-
+import pickle as pk
+import glob
 import argparse
 import docker
 from tensorforce.execution import Runner
@@ -26,7 +27,7 @@ CLIENT = docker.from_env()
 wins = 0
 losses = 0
 avg_timesteps = 0.0
-MODEL_SAVE_PATH = "./saved/"
+MODEL_SAVE_PATH = "./saved-dqfd/"
 
 def clean_up_agents(agents):
     """Stops all agents"""
@@ -141,12 +142,9 @@ def main():
     # Create a Proximal Policy Optimization agent
     agent = training_agent.initialize(env, obs_shape=(178,))
 
-    if (os.path.exists('./saved/') and len(os.listdir('./saved/')) > 0):
-        agent.restore_model(directory=MODEL_SAVE_PATH)
-
     # Callback function printing episode statistics
     def episode_finished(r):
-        if r.episode % 100 == 0:
+        if r.episode % 10 == 0:
             agent.save_model(directory=MODEL_SAVE_PATH)
         print("Finished episode {ep} after {ts} timesteps (reward: {reward})".
               format(ep=r.episode,
@@ -163,6 +161,33 @@ def main():
     atexit.register(functools.partial(clean_up_agents, agents))
     wrapped_env = WrappedEnv(env, training_agent.agent_id,
                              visualize=args.render)
+
+    if (os.path.exists(MODEL_SAVE_PATH) and len(os.listdir(MODEL_SAVE_PATH)) > 0):
+        agent.restore_model(directory=MODEL_SAVE_PATH)
+    else:
+        print("Loading recorded experiences")
+        files = glob.glob('demonstrationsDQFD/*.pkl')
+        demonstrations = list()
+        for i in range(len(files)):
+            file = files[i]
+            with open(file, 'rb') as f:
+                x = pk.load(f)
+                for timestep in range(len(x)):
+                    demonstration = dict(
+                        states=x[timestep][0],
+                        internals=agent.current_internals,
+                        actions=x[timestep][1],
+                        terminal=x[timestep][3],
+                        reward=x[timestep][2])
+                    demonstrations.append(demonstration)
+
+            if (i > 0 and i % 10 == 0):
+                print("Starting Pre-training")
+                agent.import_demonstrations(demonstrations=demonstrations)
+                agent.pretrain(steps=100000)
+                demonstrations = list()
+                print("Finished Pre-training")
+
     runner = Runner(agent=agent, environment=wrapped_env)
     runner.run(episodes=5000, max_episode_timesteps=2000,
                episode_finished=episode_finished)
