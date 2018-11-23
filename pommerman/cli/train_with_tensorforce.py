@@ -26,7 +26,8 @@ CLIENT = docker.from_env()
 wins = 0
 losses = 0
 avg_timesteps = 0.0
-MODEL_SAVE_PATH = "./saved/"
+MODEL_SAVE_PATH = "./feat-saved/"
+
 
 def clean_up_agents(agents):
     """Stops all agents"""
@@ -141,7 +142,8 @@ def main():
     # Create a Proximal Policy Optimization agent
     agent = training_agent.initialize(env, obs_shape=(203,))
 
-    if (os.path.exists('./saved/') and len(os.listdir('./saved/')) > 0):
+    if (os.path.exists(MODEL_SAVE_PATH) and
+            len(os.listdir(MODEL_SAVE_PATH)) > 0):
         agent.restore_model(directory=MODEL_SAVE_PATH)
 
     # Callback function printing episode statistics
