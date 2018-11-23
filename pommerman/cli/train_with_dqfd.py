@@ -141,7 +141,7 @@ def main():
         os.makedirs(args.record_json_dir)
 
     # Create a Proximal Policy Optimization agent
-    agent = training_agent.initialize(env, obs_shape=(178,))
+    agent = training_agent.initialize(env, obs_shape=(203,))
 
     # Callback function printing episode statistics
     def episode_finished(r):
@@ -192,6 +192,7 @@ def main():
                       format(i, elapsed))
                 agent.import_demonstrations(demonstrations=demonstrations)
                 agent.pretrain(steps=10000)
+                agent.save_model(directory=MODEL_SAVE_PATH)
                 demonstrations = list()
                 print("Finished Pre-training")
                 runner = Runner(agent=agent, environment=wrapped_env)

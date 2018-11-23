@@ -32,7 +32,7 @@ from pommerman.agents import SimpleAgent
 import copy
 
 
-def run(args, num_times=1, seed=None):
+def run(args, num_times=100, seed=None):
     '''Wrapper to help start the game'''
     config = args.config
     record_pngs_dir = args.record_pngs_dir
@@ -86,7 +86,7 @@ def run(args, num_times=1, seed=None):
                     continue
                 agent_exp = []
                 featurized = agents[i].featurize_special(old_obs[i])
-                agent_state = np.concatenate(featurized).tolist()
+                agent_state = featurized.tolist()
                 agent_exp.append(agent_state)
                 agent_exp.append(actions[i])
                 agent_exp.append(reward[i])
