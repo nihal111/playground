@@ -41,9 +41,9 @@ class TensorForceAgent(BaseAgent):
                 states=dict(type='float', shape=shape),
                 actions=actions,
                 network=[
+                    dict(type='dense', size=256),
                     dict(type='dense', size=128),
-                    dict(type='dense', size=64),
-                    dict(type='dense', size=32)
+                    dict(type='dense', size=64)
                 ],
                 batching_capacity=1000,
                 discount=0.99,
@@ -70,9 +70,9 @@ class TensorForceAgent(BaseAgent):
                 states=dict(type='float', shape=shape),
                 actions=actions,
                 network=[
+                    dict(type='dense', size=1024),
                     dict(type='dense', size=256),
-                    dict(type='dense', size=128),
-                    dict(type='dense', size=64)
+                    dict(type='dense', size=32)
                 ],
                 batching_capacity=1000,
                 discount=0.99,

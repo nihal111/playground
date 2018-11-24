@@ -32,7 +32,7 @@ from pommerman.agents import SimpleAgent
 import copy
 
 
-def run(args, num_times=1000, seed=None):
+def run(args, num_times=100, seed=None):
     '''Wrapper to help start the game'''
     config = args.config
     record_pngs_dir = args.record_pngs_dir
