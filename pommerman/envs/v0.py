@@ -303,20 +303,20 @@ class Pomme(gym.Env):
         obs_board = obs["board"]
         obs_bomb_strength = obs["bomb_blast_strength"]
         obs_bomb_life = obs["bomb_life"]
-        new_board = np.zeros(([5, 5]))
-        new_bomb_strength = np.zeros(([5, 5]))
-        new_bomb_life = np.zeros(([5, 5]))
+        new_board = np.zeros(([7, 7]))
+        new_bomb_strength = np.zeros(([7, 7]))
+        new_bomb_life = np.zeros(([7, 7]))
         x, y = obs["position"]
 
-        for i in range(-2, 3):
-            for j in range(-2, 3):
+        for i in range(-3, 4):
+            for j in range(-3, 4):
                 if (i + x < 0 or j + y < 0 or i + x > 10 or j + y > 10):
-                    new_board[2 + i][2 + j] = 1
+                    new_board[3 + i][3 + j] = 1
                 else:
-                    new_board[2 + i][2 + j] = obs_board[i + x][j + y]
-                    new_bomb_strength[2 + i][2 + j] = \
+                    new_board[3 + i][3 + j] = obs_board[i + x][j + y]
+                    new_bomb_strength[3 + i][3 + j] = \
                         obs_bomb_strength[i + x][j + y]
-                    new_bomb_life[2 + i][2 + j] = obs_bomb_life[i + x][j + y]
+                    new_bomb_life[3 + i][3 + j] = obs_bomb_life[i + x][j + y]
 
         passage = np.add(copy.deepcopy(new_board), 0)
         passage[passage == 0] = 10
@@ -367,13 +367,13 @@ class Pomme(gym.Env):
             strength = int(new_bomb_strength[tup])
             x, y = tup
             for j in range(y - strength + 1, y + strength):
-                if (j > -1 and j < 5):
+                if (j > -1 and j < 7):
                     if new_bomb_life[(x, j)] == 0:
                         new_bomb_life[(x, j)] = 10 - life
                     elif new_bomb_life[(x, j)] <= life:
                         new_bomb_life[(x, j)] = 10 - life
             for i in range(x - strength + 1, x + strength):
-                if (i > -1 and i < 5):
+                if (i > -1 and i < 7):
                     if new_bomb_life[(i, y)] == 0:
                         new_bomb_life[(i, y)] = 10 - life
                     elif new_bomb_life[(i, y)] <= life:
