@@ -42,7 +42,8 @@ class TensorForceAgent(BaseAgent):
                 actions=actions,
                 network=[
                     dict(type='dense', size=128),
-                    dict(type='dense', size=64)
+                    dict(type='dense', size=64),
+                    dict(type='dense', size=32)
                 ],
                 batching_capacity=1000,
                 discount=0.99,
